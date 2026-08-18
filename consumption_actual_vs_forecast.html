@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Actual vs Forecast Consumption - SA Feature Value by ODM</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root{
+  --navy-950:#0a1628;
+  --navy-900:#0f1f38;
+  --navy-800:#16294a;
+  --navy-700:#1e3a5f;
+  --navy-600:#2c527f;
+  --slate-400:#7b8ca3;
+  --slate-300:#a3b1c4;
+  --slate-100:#e7ecf3;
+  --paper:#f6f7f9;
+  --green-600:#1e7a52;
+  --green-500:#2a9d6f;
+  --green-100:#e2f4ec;
+  --amber-600:#b5790a;
+  --amber-100:#fbf0dc;
+  --red-600:#b23a3a;
+  --red-100:#f8e6e6;
+  --violet-600:#6d43c0;
+  --violet-100:#f1eafb;
+  --line:#dde3ea;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{background:var(--paper); font-family:'Archivo',sans-serif; color:var(--navy-900); padding:0 0 60px 0;}
+.wrap{max-width:1180px; margin:0 auto; padding:0 32px;}
+
+.masthead{
+  background:linear-gradient(135deg,var(--navy-950) 0%,var(--navy-800) 100%);
+  color:var(--slate-100); padding:34px 0 26px 0; border-bottom:4px solid var(--green-500);
+}
+h1{font-size:26px; font-weight:800; letter-spacing:-.01em;}
+.subtitle{color:var(--slate-300); font-size:14px; margin-top:6px;}
+
+.controls{
+  background:#fff; border-bottom:1px solid var(--line); padding:18px 0; position:sticky; top:0; z-index:10;
+  box-shadow:0 2px 8px rgba(10,22,40,0.06);
+}
+.controls-inner{display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end;}
+.control-group{display:flex; flex-direction:column; gap:6px; min-width:260px; flex:1;}
+.control-label{font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--slate-400); font-weight:600;}
+select{
+  padding:9px 12px; border:1px solid var(--line); border-radius:6px; font-family:'Archivo',sans-serif; font-size:13.5px;
+  color:var(--navy-900); background:#fff;
+}
+select[multiple]{height:110px;}
+.reset-btn{
+  padding:9px 16px; border:1px solid var(--navy-700); border-radius:6px; background:var(--navy-900); color:#fff;
+  font-family:'Archivo',sans-serif; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap;
+}
+.reset-btn:hover{background:var(--navy-700);}
+
+.section{padding:30px 0 8px 0;}
+.section-head{
+  display:flex; align-items:baseline; gap:12px; margin-bottom:16px; border-bottom:2px solid var(--navy-900); padding-bottom:10px;
+}
+.section-num{font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--green-600); font-weight:600;}
+.section-head h2{font-size:17px; font-weight:700;}
+.section-note{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--slate-400); margin-left:auto;}
+
+.stat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px;}
+.stat-card{background:#fff; border:1px solid var(--line); border-top:3px solid var(--slate-400); border-radius:6px; padding:14px 16px;}
+.stat-card.actual{border-top-color:var(--green-600);}
+.stat-card.forecast{border-top-color:var(--amber-600);}
+.stat-card.change-up{border-top-color:var(--red-600);}
+.stat-card.change-down{border-top-color:var(--navy-600);}
+.stat-label{font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--slate-400); margin-bottom:6px;}
+.stat-value{font-size:20px; font-weight:800; color:var(--navy-900);}
+.stat-sub{font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--slate-400); margin-top:4px;}
+
+.chart-card{background:#fff; border:1px solid var(--line); border-radius:6px; padding:20px 22px; margin-bottom:20px;}
+.legend{display:flex; gap:16px; margin-bottom:12px; font-size:11.5px; color:var(--slate-400); flex-wrap:wrap;}
+.legend span{display:flex; align-items:center; gap:6px;}
+.dot{width:10px; height:10px; border-radius:2px; display:inline-block;}
+
+.insights-card{background:#fff; border:1px solid var(--line); border-radius:6px; overflow:hidden; margin-bottom:20px;}
+.insight-row{display:flex; gap:14px; padding:14px 20px; border-bottom:1px solid var(--line); align-items:flex-start;}
+.insight-row:last-child{border-bottom:none;}
+.insight-icon{
+  font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:700; padding:3px 9px; border-radius:20px;
+  white-space:nowrap; margin-top:1px;
+}
+.insight-icon.warn{background:var(--red-100); color:var(--red-600);}
+.insight-icon.watch{background:var(--amber-100); color:var(--amber-600);}
+.insight-icon.info{background:#e4ecf6; color:var(--navy-700);}
+.insight-icon.good{background:var(--green-100); color:var(--green-600);}
+.insight-text{font-size:13px; line-height:1.55; color:var(--navy-800);}
+.insight-text b{color:var(--navy-950);}
+
+.odm-table-wrap{background:#fff; border:1px solid var(--line); border-radius:6px; overflow:hidden;}
+table{width:100%; border-collapse:collapse; font-size:13px;}
+thead th{
+  background:var(--navy-900); color:var(--slate-100); font-family:'IBM Plex Mono',monospace; font-size:10.5px;
+  letter-spacing:.05em; text-transform:uppercase; text-align:left; padding:11px 14px; font-weight:600;
+}
+thead th.num{text-align:right;}
+tbody td{padding:11px 14px; border-bottom:1px solid var(--line);}
+tbody td.num{text-align:right; font-family:'IBM Plex Mono',monospace;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:var(--slate-100);}
+.odm-name{font-weight:600; color:var(--navy-900);}
+.flag-pill{
+  display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:9.5px; font-weight:700;
+  padding:2px 8px; border-radius:20px; margin-left:8px;
+}
+.flag-new{background:var(--violet-100); color:var(--violet-600);}
+.flag-gone{background:var(--red-100); color:var(--red-600);}
+
+.empty-state{padding:40px; text-align:center; color:var(--slate-400); font-size:13.5px;}
+
+footer{text-align:center; padding:30px 0 0 0; font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--slate-400);}
+
+@media (max-width:900px){
+  .stat-grid{grid-template-columns:repeat(2,1fr);}
+  .control-group{min-width:100%;}
+}
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <div class="wrap">
+    <h1>Actual vs Forecast Consumption</h1>
+    <div class="subtitle">SA Feature Value by ODM &middot; Jan 2026&ndash;Jul 2026 actual, Aug 2026&ndash;Jan 2027 forecast</div>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="wrap controls-inner">
+    <div class="control-group">
+      <label class="control-label" for="fvSelect">Feature Value</label>
+      <select id="fvSelect"></select>
+    </div>
+    <div class="control-group">
+      <label class="control-label" for="odmSelect">ODM (multi-select, ctrl/cmd+click)</label>
+      <select id="odmSelect" multiple></select>
+    </div>
+    <button class="reset-btn" id="resetBtn">Reset filters</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="section">
+    <div class="section-head">
+      <span class="section-num">01</span>
+      <h2>Summary</h2>
+      <span class="section-note" id="scopeNote"></span>
+    </div>
+    <div class="stat-grid" id="statGrid"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <span class="section-num">02</span>
+      <h2>Monthly Trend</h2>
+      <span class="section-note">Solid green = actual &middot; Amber = forecast</span>
+    </div>
+    <div class="chart-card">
+      <div class="legend">
+        <span><span class="dot" style="background:#1e7a52"></span>Actual (Jan&ndash;Jul 2026)</span>
+        <span><span class="dot" style="background:#d99a1f"></span>Forecast (Aug 2026&ndash;Jan 2027)</span>
+      </div>
+      <div style="position:relative; width:100%; height:320px;">
+        <canvas id="trendChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <span class="section-num">03</span>
+      <h2>Bias &amp; Forecast Insights</h2>
+      <span class="section-note">Auto-computed for current filter</span>
+    </div>
+    <div class="insights-card" id="insightsCard"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <span class="section-num">04</span>
+      <h2>ODM Detail</h2>
+      <span class="section-note" id="odmCountNote"></span>
+    </div>
+    <div class="odm-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:34%">ODM</th>
+            <th class="num" style="width:16%">Actual Total (7mo)</th>
+            <th class="num" style="width:16%">Forecast Total (6mo)</th>
+            <th class="num" style="width:14%">Avg Actual/mo</th>
+            <th class="num" style="width:14%">Avg Fcst/mo</th>
+            <th class="num" style="width:14%">% Change</th>
+          </tr>
+        </thead>
+        <tbody id="odmTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    Actual vs Forecast Consumption Analysis &middot; SA Feature Value x ODM &middot; Confidential
+  </footer>
+
+</div>
+
+<script>
+const RAW = {"months": ["2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10", "2026-11", "2026-12", "2027-01"], "actual_count": 7, "data": [{"fv": "16GB DDR5 4800 UDIMM ECC", "odm": "01BL - Flextronics Brazil", "vals": [1, 394, 48, 0, 151, 7, 4, 0, 0, 0, 0, 0, 0]}, {"fv": "16GB DDR5 4800 UDIMM ECC", "odm": "01DJ - Foxconn Wuhan", "vals": [210, 264, 2, 2, 0, 0, 7, 237, 258, 199, 148, 151, 99]}, {"fv": "16GB DDR5 4800 UDIMM ECC", "odm": "0874 - Foxconn CZ", "vals": [560, 258, 105, 735, 1353, 1788, 0, 1345, 199, 9, 32, 83, 12]}, {"fv": "16GB DDR5 4800 UDIMM ECC", "odm": "0973 - Foxconn Juarez", "vals": [574, 15, 32, 670, 616, 24, 120, 602, 502, 289, 349, 348, 163]}, {"fv": "16GB DDR5 4800 UDIMM ECC", "odm": "US3L - Japan Hino Factory (US3L)", "vals": [8, 29, 39, 6, 12, 0, 0, 0, 0, 0, 0, 0, 0]}, {"fv": "16GB DDR5 4800 UDIMM ECC", "odm": "XG01 - HP India - Flex Chennai Mfg", "vals": [0, 0, 0, 118, 256, 0, 0, 0, 0, 0, 0, 0, 0]}, {"fv": "16GB DDR5 6400 CSODIMM ECC", "odm": "02BA - Inventec Thailand Branch 0001", "vals": [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0]}, {"fv": "16GB DDR5 6400 CSODIMM ECC", "odm": "0905 - Inventec Chongqing", "vals": [0, 12, 5, 1, 1, 4, 120, 34, 5, 5, 4, 4, 5]}, {"fv": "16GB DDR5 6400 CSODIMM ECC", "odm": "0973 - Foxconn Juarez", "vals": [8, 20, 178, 15, 0, 151, 0, 7, 10, 6, 15, 11, 10]}, {"fv": "32GB DDR4 3200 SODIMM NECC", "odm": "00CV - Quanta Chongqing", "vals": [6076, 13, 2, 0, 209, 50, 0, 30, 6, 6, 5, 6, 5]}, {"fv": "32GB DDR4 3200 SODIMM NECC", "odm": "01BL - Flextronics Brazil", "vals": [0, 0, 45, 0, 0, 675, 5, 53, 0, 0, 0, 0, 0]}, {"fv": "32GB DDR4 3200 SODIMM NECC", "odm": "01CE - Wistron Chongqing", "vals": [0, 0, 0, 0, 0, 0, 0, 1, 7, 6, 9, 8, 9]}, {"fv": "32GB DDR4 3200 SODIMM NECC", "odm": "02DD - Quanta Manufacturing Bangkok", "vals": [25, 300, 450, 0, 550, 1003, 0, 107, 140, 140, 196, 196, 182]}, {"fv": "32GB DDR4 3200 SODIMM NECC", "odm": "0905 - Inventec Chongqing", "vals": [0, 1, 8, 3, 0, 1, 3, 38, 13, 14, 12, 13, 12]}, {"fv": "32GB DDR4 3200 SODIMM NECC", "odm": "0973 - Foxconn Juarez", "vals": [30, 49, 4, 2, 0, 0, 0, 123, 216, 367, 494, 566, 548]}, {"fv": "32GB DDR4 3200 SODIMM NECC", "odm": "XG01 - HP India - Flex Chennai Mfg", "vals": [0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0]}, {"fv": "32GB DDR4 3200 UDIMM NECC", "odm": "0035 - Foxconn Longhua", "vals": [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"fv": "32GB DDR4 3200 UDIMM NECC", "odm": "01DJ - Foxconn Wuhan", "vals": [2697, 2876, 1760, 802, 1603, 0, 0, 0, 0, 0, 0, 0, 0]}, {"fv": "32GB DDR4 3200 UDIMM NECC", "odm": "0874 - Foxconn CZ", "vals": [0, 0, 0, 0, 25, 27, 0, 20, 0, 0, 0, 0, 0]}, {"fv": "32GB DDR4 3200 UDIMM NECC", "odm": "0973 - Foxconn Juarez", "vals": [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"fv": "32GB DDR4 3200 UDIMM NECC", "odm": "XG01 - HP India - Flex Chennai Mfg", "vals": [0, 58, 65, 0, 37, 0, 0, 0, 0, 0, 0, 0, 0]}, {"fv": "32GB LPDDR4X 4266 FBGA432", "odm": "02AA - Inventec Mexico", "vals": [0, 672, 822, 676, 464, 424, 50, 0, 0, 0, 0, 0, 0]}, {"fv": "32GB LPDDR4X 4266 FBGA432", "odm": "0905 - Inventec Chongqing", "vals": [480, 992, 990, 503, 701, 609, 593, 1692, 1205, 2196, 1261, 898, 2831]}, {"fv": "48GB DDR5 6400 CSODIMM NECC", "odm": "02BA - Inventec Thailand Branch 0001", "vals": [0, 0, 0, 0, 0, 0, 0, 3, 1, 3, 3, 4, 5]}, {"fv": "48GB DDR5 6400 CSODIMM NECC", "odm": "0905 - Inventec Chongqing", "vals": [120, 36, 154, 122, 166, 41, 186, 366, 88, 88, 93, 98, 98]}, {"fv": "48GB DDR5 6400 CSODIMM NECC", "odm": "0973 - Foxconn Juarez", "vals": [20, 8, 0, 4, 0, 40, 4, 6, 8, 4, 10, 6, 6]}, {"fv": "64GB LPDDR4X 4266 FBGA432", "odm": "02AA - Inventec Mexico", "vals": [48, 302, 742, 682, 94, 236, 60, 0, 0, 0, 0, 0, 0]}, {"fv": "64GB LPDDR4X 4266 FBGA432", "odm": "0905 - Inventec Chongqing", "vals": [408, 162, 1466, 376, 560, 986, 1246, 1698, 1628, 1040, 974, 1334, 510]}, {"fv": "SSD 128GB M.2 2230 PCIE NVME VALUE", "odm": "00CV - Quanta Chongqing", "vals": [322, 200, 103, 1100, 0, 3694, 10, 32, 20, 20, 0, 0, 0]}, {"fv": "SSD 128GB M.2 2230 PCIE NVME VALUE", "odm": "02BA - Inventec Thailand Branch 0001", "vals": [89, 62, 21, 1561, 445, 501, 483, 127, 163, 142, 203, 216, 121]}, {"fv": "SSD 128GB M.2 2230 PCIE NVME VALUE", "odm": "02DD - Quanta Manufacturing Bangkok", "vals": [5125, 1913, 45, 10, 127, 105, 635, 309, 446, 446, 819, 1051, 418]}, {"fv": "SSD 128GB M.2 2230 PCIE NVME VALUE", "odm": "02EE - Inventec Electronics (Thailand) Co.", "vals": [12929, 28769, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"fv": "SSD 128GB M.2 2230 PCIE NVME VALUE", "odm": "0905 - Inventec Chongqing", "vals": [204, 306, 1408, 0, 0, 2470, 1152, 16, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE 5X4 NVME SED OPAL2 TLC", "odm": "0035 - Foxconn Longhua", "vals": [0, 0, 0, 0, 0, 0, 0, 110, 55, 56, 54, 54, 51]}, {"fv": "SSD 1TB M.2 2280 PCIE 5X4 NVME SED OPAL2 TLC", "odm": "00CV - Quanta Chongqing", "vals": [0, 0, 0, 0, 3, 1, 15, 102, 241, 235, 288, 306, 208]}, {"fv": "SSD 1TB M.2 2280 PCIE 5X4 NVME SED OPAL2 TLC", "odm": "01CV - Foxconn Indianapolis AMO", "vals": [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE 5X4 NVME SED OPAL2 TLC", "odm": "01DJ - Foxconn Wuhan", "vals": [0, 24, 24, 0, 0, 0, 1, 28, 90, 251, 26, 15, 30]}, {"fv": "SSD 1TB M.2 2280 PCIE 5X4 NVME SED OPAL2 TLC", "odm": "02AA - Inventec Mexico", "vals": [0, 0, 0, 0, 0, 0, 11, 36, 9, 14, 24, 32, 14]}, {"fv": "SSD 1TB M.2 2280 PCIE 5X4 NVME SED OPAL2 TLC", "odm": "02BA - Inventec Thailand Branch 0001", "vals": [0, 0, 0, 0, 18, 508, 0, 358, 518, 327, 488, 503, 380]}, {"fv": "SSD 1TB M.2 2280 PCIE 5X4 NVME SED OPAL2 TLC", "odm": "02DD - Quanta Manufacturing Bangkok", "vals": [0, 0, 0, 0, 6, 35, 15, 903, 2802, 2448, 3043, 3273, 2445]}, {"fv": "SSD 1TB M.2 2280 PCIE 5X4 NVME SED OPAL2 TLC", "odm": "0874 - Foxconn CZ", "vals": [6, 65, 3, 5, 2, 4, 61, 390, 252, 457, 113, 132, 140]}, {"fv": "SSD 1TB M.2 2280 PCIE 5X4 NVME SED OPAL2 TLC", "odm": "0905 - Inventec Chongqing", "vals": [0, 18, 6, 24, 35, 1063, 1564, 1265, 1741, 1629, 1669, 1978, 1548]}, {"fv": "SSD 1TB M.2 2280 PCIE 5X4 NVME SED OPAL2 TLC", "odm": "0973 - Foxconn Juarez", "vals": [3, 5, 2, 0, 21, 1, 25, 65, 140, 319, 44, 63, 68]}, {"fv": "SSD 1TB M.2 2280 PCIE 5X4 NVME SED OPAL2 TLC", "odm": "XG01 - HP India - Flex Chennai Mfg", "vals": [0, 0, 0, 0, 0, 0, 0, 2, 1, 1, 1, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME SED OPAL2 TLC", "odm": "00CV - Quanta Chongqing", "vals": [1292, 351, 293, 371, 237, 117, 140, 40, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME SED OPAL2 TLC", "odm": "01BL - Flextronics Brazil", "vals": [22, 162, 26, 40, 64, 5, 0, 0, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME SED OPAL2 TLC", "odm": "01CE - Wistron Chongqing", "vals": [0, 20, 50, 0, 70, 24, 0, 32, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME SED OPAL2 TLC", "odm": "01CV - Foxconn Indianapolis AMO", "vals": [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME SED OPAL2 TLC", "odm": "01DJ - Foxconn Wuhan", "vals": [123, 96, 643, 272, 321, 413, 211, 267, 2146, 149, 201, 191, 224]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME SED OPAL2 TLC", "odm": "02AA - Inventec Mexico", "vals": [16, 17, 33, 26, 1, 278, 54, 2534, 5, 5, 9, 5, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME SED OPAL2 TLC", "odm": "02BA - Inventec Thailand Branch 0001", "vals": [13, 5, 41, 1, 1, 1, 1, 25, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME SED OPAL2 TLC", "odm": "02DD - Quanta Manufacturing Bangkok", "vals": [971, 1327, 2425, 471, 1097, 573, 2179, 1731, 80, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME SED OPAL2 TLC", "odm": "0874 - Foxconn CZ", "vals": [1199, 590, 517, 762, 751, 1183, 1621, 1341, 992, 1382, 1093, 1207, 1337]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME SED OPAL2 TLC", "odm": "0905 - Inventec Chongqing", "vals": [1539, 603, 1903, 1247, 3147, 821, 1096, 1001, 4, 3, 4, 4, 4]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME SED OPAL2 TLC", "odm": "0973 - Foxconn Juarez", "vals": [637, 256, 333, 495, 104, 528, 608, 430, 224, 183, 163, 165, 165]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME SED OPAL2 TLC", "odm": "XG01 - HP India - Flex Chennai Mfg", "vals": [4, 3, 21, 10, 33, 42, 27, 21, 11, 11, 5, 7, 7]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME SED OPAL2 TLC NMIC", "odm": "00CV - Quanta Chongqing", "vals": [57, 30, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME SED OPAL2 TLC NMIC", "odm": "02AA - Inventec Mexico", "vals": [0, 0, 2, 2, 0, 0, 3, 1, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME SED OPAL2 TLC NMIC", "odm": "02BA - Inventec Thailand Branch 0001", "vals": [0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME SED OPAL2 TLC NMIC", "odm": "02DD - Quanta Manufacturing Bangkok", "vals": [1, 8, 55, 5, 15, 7, 21, 1, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME SED OPAL2 TLC NMIC", "odm": "02EE - Inventec Electronics (Thailand) Co.", "vals": [71, 60, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME SED OPAL2 TLC NMIC", "odm": "0874 - Foxconn CZ", "vals": [0, 0, 0, 0, 0, 0, 0, 50, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME SED OPAL2 TLC NMIC", "odm": "0973 - Foxconn Juarez", "vals": [1, 0, 0, 6, 0, 0, 0, 5, 3, 2, 4, 4, 4]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC", "odm": "0035 - Foxconn Longhua", "vals": [448, 56, 6, 2, 7, 3, 3, 198, 123, 129, 113, 126, 119]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC", "odm": "00CV - Quanta Chongqing", "vals": [24043, 15589, 17230, 12364, 9415, 12563, 7168, 6692, 1579, 1135, 1311, 824, 639]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC", "odm": "01BL - Flextronics Brazil", "vals": [56, 223, 1012, 14, 30, 469, 37, 1593, 123, 210, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC", "odm": "01CE - Wistron Chongqing", "vals": [251, 631, 163, 388, 40, 62, 0, 178, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC", "odm": "01CV - Foxconn Indianapolis AMO", "vals": [10, 60, 3, 1, 1, 1, 1, 140, 70, 72, 68, 65, 4]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC", "odm": "01DJ - Foxconn Wuhan", "vals": [6898, 5103, 6781, 5545, 4445, 6827, 4487, 8395, 3730, 3593, 4250, 3824, 4285]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC", "odm": "02AA - Inventec Mexico", "vals": [18325, 17326, 23140, 11778, 10911, 7948, 5508, 6022, 3297, 2464, 175, 171, 189]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC", "odm": "02BA - Inventec Thailand Branch 0001", "vals": [2172, 2583, 4608, 702, 131, 1, 165, 95, 4, 3, 2, 2, 1]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC", "odm": "02BC - Compal (Viet Nam) Co., Ltd.", "vals": [4, 152, 158, 83, 61, 0, 0, 0, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC", "odm": "02BJ - FOXCONN BRASIL INDUSTRIA - PS", "vals": [0, 0, 0, 0, 0, 0, 0, 35, 0, 125, 300, 275, 275]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC", "odm": "02DD - Quanta Manufacturing Bangkok", "vals": [18205, 14028, 22542, 20840, 18890, 12236, 8868, 13442, 6330, 5393, 1258, 1250, 3251]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC", "odm": "02EE - Inventec Electronics (Thailand) Co.", "vals": [1, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC", "odm": "0874 - Foxconn CZ", "vals": [12670, 7043, 8203, 14136, 9068, 10065, 8645, 17630, 9464, 8290, 7698, 8302, 8212]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC", "odm": "0875 - Foxconn Indianapolis", "vals": [0, 0, 0, 171, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC", "odm": "0905 - Inventec Chongqing", "vals": [31349, 31008, 32819, 21111, 19790, 16790, 11434, 13867, 6229, 430, 267, 367, 232]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC", "odm": "0940 - Compal Kun Shan", "vals": [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC", "odm": "0973 - Foxconn Juarez", "vals": [21664, 7629, 11265, 20773, 10167, 11862, 10412, 27676, 9172, 13959, 10354, 10388, 9258]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC", "odm": "CN50 - HP China", "vals": [6420, 0, 0, 1, 327, 2778, 2002, 64, 93, 59, 9, 9, 4]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC", "odm": "IN22 - India CDO", "vals": [0, 0, 0, 0, 2, 0, 3748, 1, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC", "odm": "US3L - Japan Hino Factory (US3L)", "vals": [3267, 3553, 3320, 3107, 1853, 2560, 949, 882, 784, 0, 0, 0, 27]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC", "odm": "XG01 - HP India - Flex Chennai Mfg", "vals": [123, 282, 643, 538, 1047, 392, 62, 1582, 637, 556, 327, 381, 354]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC NMIC", "odm": "00CV - Quanta Chongqing", "vals": [203, 15, 840, 0, 1, 9, 34, 0, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC NMIC", "odm": "02AA - Inventec Mexico", "vals": [1797, 8360, 4560, 1749, 7699, 11514, 6961, 1769, 1000, 500, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC NMIC", "odm": "02BA - Inventec Thailand Branch 0001", "vals": [0, 0, 0, 0, 0, 80, 8, 155, 134, 134, 135, 136, 36]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC NMIC", "odm": "02DD - Quanta Manufacturing Bangkok", "vals": [240, 141, 679, 110, 80, 0, 39, 10, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC NMIC", "odm": "02EE - Inventec Electronics (Thailand) Co.", "vals": [96, 10, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC NMIC", "odm": "0874 - Foxconn CZ", "vals": [2092, 0, 0, 0, 1, 35, 10, 600, 600, 600, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC NMIC", "odm": "0875 - Foxconn Indianapolis", "vals": [0, 0, 0, 29, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC NMIC", "odm": "0905 - Inventec Chongqing", "vals": [17, 30, 29, 120, 16, 203, 84, 93, 0, 0, 0, 0, 0]}, {"fv": "SSD 1TB M.2 2280 PCIE NVME TLC NMIC", "odm": "0973 - Foxconn Juarez", "vals": [18, 63, 179, 670, 1408, 909, 677, 613, 152, 155, 161, 177, 170]}, {"fv": "SSD 2TB M.2 2280 PCIE 5X4 NVME SED OPAL2 TLC", "odm": "00CV - Quanta Chongqing", "vals": [0, 0, 0, 0, 0, 0, 24, 2, 5, 0, 0, 0, 0]}, {"fv": "SSD 2TB M.2 2280 PCIE 5X4 NVME SED OPAL2 TLC", "odm": "01DJ - Foxconn Wuhan", "vals": [0, 0, 0, 0, 1, 2, 1, 21, 23, 50, 49, 21, 51]}, {"fv": "SSD 2TB M.2 2280 PCIE 5X4 NVME SED OPAL2 TLC", "odm": "02BA - Inventec Thailand Branch 0001", "vals": [0, 0, 0, 0, 7, 0, 0, 2, 1, 4, 4, 4, 4]}, {"fv": "SSD 2TB M.2 2280 PCIE 5X4 NVME SED OPAL2 TLC", "odm": "02DD - Quanta Manufacturing Bangkok", "vals": [0, 0, 0, 0, 11, 2, 12, 53, 46, 45, 40, 46, 32]}, {"fv": "SSD 2TB M.2 2280 PCIE 5X4 NVME SED OPAL2 TLC", "odm": "0874 - Foxconn CZ", "vals": [3, 19, 16, 4, 13, 11, 43, 191, 41, 152, 87, 99, 105]}, {"fv": "SSD 2TB M.2 2280 PCIE 5X4 NVME SED OPAL2 TLC", "odm": "0905 - Inventec Chongqing", "vals": [1, 0, 0, 5, 4, 0, 1, 97, 169, 158, 152, 190, 139]}, {"fv": "SSD 2TB M.2 2280 PCIE 5X4 NVME SED OPAL2 TLC", "odm": "0973 - Foxconn Juarez", "vals": [1, 0, 0, 2, 0, 40, 17, 19, 43, 107, 28, 45, 50]}, {"fv": "SSD 2TB M.2 2280 PCIE NVME VALUE", "odm": "00CV - Quanta Chongqing", "vals": [406, 105, 251, 2, 20, 377, 242, 298, 441, 381, 484, 567, 476]}, {"fv": "SSD 2TB M.2 2280 PCIE NVME VALUE", "odm": "01CE - Wistron Chongqing", "vals": [3630, 2741, 3280, 158, 369, 268, 236, 1405, 1606, 1415, 1537, 1740, 1607]}, {"fv": "SSD 2TB M.2 2280 PCIE NVME VALUE", "odm": "01DJ - Foxconn Wuhan", "vals": [119, 447, 122, 75, 89, 58, 80, 243, 313, 288, 318, 382, 366]}, {"fv": "SSD 2TB M.2 2280 PCIE NVME VALUE", "odm": "01DZ - Pegatron Chongqing", "vals": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 250]}, {"fv": "SSD 2TB M.2 2280 PCIE NVME VALUE", "odm": "02AI - Padget (Dixon) Electronics Pvt. Ltd", "vals": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15, 15]}, {"fv": "SSD 2TB M.2 2280 PCIE NVME VALUE", "odm": "02AT - WISTRON INFOCOMM TECH VIETNAM", "vals": [3862, 2049, 540, 1467, 824, 195, 153, 1329, 937, 878, 1156, 1130, 393]}, {"fv": "SSD 2TB M.2 2280 PCIE NVME VALUE", "odm": "02BA - Inventec Thailand Branch 0001", "vals": [200, 57, 149, 34, 45, 32, 53, 58, 95, 100, 70, 18, 0]}, {"fv": "SSD 2TB M.2 2280 PCIE NVME VALUE", "odm": "02BC - Compal (Viet Nam) Co., Ltd.", "vals": [11, 13, 14, 14, 4, 1, 2, 0, 0, 0, 0, 0, 0]}, {"fv": "SSD 2TB M.2 2280 PCIE NVME VALUE", "odm": "02DD - Quanta Manufacturing Bangkok", "vals": [514, 713, 1202, 368, 68, 94, 252, 480, 437, 490, 366, 336, 200]}, {"fv": "SSD 2TB M.2 2280 PCIE NVME VALUE", "odm": "0874 - Foxconn CZ", "vals": [0, 0, 50, 92, 23, 20, 45, 287, 193, 177, 171, 160, 142]}, {"fv": "SSD 2TB M.2 2280 PCIE NVME VALUE", "odm": "0905 - Inventec Chongqing", "vals": [480, 258, 136, 1464, 145, 147, 51, 122, 0, 0, 0, 0, 0]}, {"fv": "SSD 2TB M.2 2280 PCIE NVME VALUE", "odm": "0940 - Compal Kun Shan", "vals": [0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0]}, {"fv": "SSD 2TB M.2 2280 PCIE NVME VALUE", "odm": "0973 - Foxconn Juarez", "vals": [1873, 1002, 1474, 933, 555, 366, 528, 909, 907, 493, 545, 243, 164]}, {"fv": "SSD 4TB M.2 2280 PCIE 5X4 NVME TLC", "odm": "0035 - Foxconn Longhua", "vals": [0, 0, 0, 0, 0, 0, 0, 110, 55, 56, 54, 54, 51]}, {"fv": "SSD 4TB M.2 2280 PCIE 5X4 NVME TLC", "odm": "00CV - Quanta Chongqing", "vals": [0, 0, 0, 0, 0, 0, 1, 27, 43, 49, 67, 72, 49]}, {"fv": "SSD 4TB M.2 2280 PCIE 5X4 NVME TLC", "odm": "01CE - Wistron Chongqing", "vals": [45, 0, 46, 0, 1, 0, 0, 7, 9, 10, 9, 8, 9]}, {"fv": "SSD 4TB M.2 2280 PCIE 5X4 NVME TLC", "odm": "02AA - Inventec Mexico", "vals": [0, 0, 0, 0, 0, 0, 0, 70, 24, 29, 56, 71, 32]}, {"fv": "SSD 4TB M.2 2280 PCIE 5X4 NVME TLC", "odm": "02BA - Inventec Thailand Branch 0001", "vals": [0, 0, 0, 0, 0, 0, 0, 2, 4, 2, 91, 83, 65]}, {"fv": "SSD 4TB M.2 2280 PCIE 5X4 NVME TLC", "odm": "02DD - Quanta Manufacturing Bangkok", "vals": [0, 0, 0, 0, 0, 0, 5, 15, 26, 35, 40, 49, 37]}, {"fv": "SSD 4TB M.2 2280 PCIE 5X4 NVME TLC", "odm": "0874 - Foxconn CZ", "vals": [0, 0, 20, 0, 0, 0, 0, 39, 22, 20, 18, 20, 21]}, {"fv": "SSD 4TB M.2 2280 PCIE 5X4 NVME TLC", "odm": "0905 - Inventec Chongqing", "vals": [0, 0, 0, 0, 0, 0, 0, 132, 256, 336, 256, 302, 243]}, {"fv": "SSD 4TB M.2 2280 PCIE 5X4 NVME TLC", "odm": "0973 - Foxconn Juarez", "vals": [0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 4, 3]}, {"fv": "UFS 256GB 3.1 TLC", "odm": "00CV - Quanta Chongqing", "vals": [161, 0, 206, 597, 700, 0, 0, 209, 0, 0, 0, 0, 0]}, {"fv": "UFS 256GB 3.1 TLC", "odm": "01CE - Wistron Chongqing", "vals": [128, 52, 145, 132, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"fv": "UFS 256GB 3.1 TLC", "odm": "01FZ - Huaqin Nanchang", "vals": [0, 0, 0, 0, 0, 0, 770, 1008, 633, 508, 508, 1831, 0]}, {"fv": "UFS 256GB 3.1 TLC", "odm": "02BA - Inventec Thailand Branch 0001", "vals": [0, 0, 1521, 1050, 3433, 915, 149, 859, 9462, 3765, 874, 508, 316]}, {"fv": "UFS 256GB 3.1 TLC", "odm": "02DD - Quanta Manufacturing Bangkok", "vals": [254, 11, 205, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"fv": "UFS 256GB 3.1 TLC", "odm": "0905 - Inventec Chongqing", "vals": [0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 22, 33]}]}
+;
+const months = RAW.months;
+const actualCount = RAW.actual_count;
+const forecastCount = months.length - actualCount;
+const data = RAW.data;
+
+const fvSelect = document.getElementById('fvSelect');
+const odmSelect = document.getElementById('odmSelect');
+const resetBtn = document.getElementById('resetBtn');
+
+const fvs = Array.from(new Set(data.map(function(d){return d.fv;}))).sort();
+fvSelect.innerHTML = '<option value="__ALL__">All Feature Values</option>' +
+  fvs.map(function(fv){ return '<option value="' + fv + '">' + fv + '</option>'; }).join('');
+
+function updateOdmOptions(){
+  const fv = fvSelect.value;
+  const src = fv === '__ALL__' ? data : data.filter(function(d){return d.fv === fv;});
+  const relevantOdms = Array.from(new Set(src.map(function(d){return d.odm;}))).sort();
+  odmSelect.innerHTML = relevantOdms.map(function(o){ return '<option value="' + o + '" selected>' + o + '</option>'; }).join('');
+}
+
+function fmtNum(n){
+  return Math.round(n).toLocaleString('en-US');
+}
+
+function esc(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function getFiltered(){
+  const fv = fvSelect.value;
+  const opts = odmSelect.selectedOptions;
+  const selectedOdms = [];
+  for(let i=0;i<opts.length;i++){ selectedOdms.push(opts[i].value); }
+  return data.filter(function(d){
+    return (fv === '__ALL__' || d.fv === fv) && selectedOdms.indexOf(d.odm) !== -1;
+  });
+}
+
+function drawBarChart(canvas, values, labels, actualN){
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = canvas.parentElement.clientWidth;
+  const cssH = 320;
+  canvas.width = cssW * dpr;
+  canvas.height = cssH * dpr;
+  canvas.style.width = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cssW, cssH);
+
+  const padL = 60, padR = 10, padT = 14, padB = 34;
+  const plotW = cssW - padL - padR;
+  const plotH = cssH - padT - padB;
+  const maxVal = Math.max.apply(null, values.concat([1])) * 1.12;
+
+  ctx.strokeStyle = '#e1e0d9';
+  ctx.lineWidth = 1;
+  ctx.fillStyle = '#7b8ca3';
+  ctx.font = '11px Archivo, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  const gridLines = 4;
+  for(let i = 0; i <= gridLines; i++){
+    const y = padT + plotH - (plotH * i / gridLines);
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(padL + plotW, y);
+    ctx.stroke();
+    const val = (maxVal * i / gridLines);
+    ctx.fillText(fmtNum(val), padL - 8, y);
+  }
+
+  const n = values.length;
+  const slot = plotW / n;
+  const barW = slot * 0.62;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  for(let i=0;i<values.length;i++){
+    const v = values[i];
+    const x = padL + slot * i + (slot - barW) / 2;
+    const h = maxVal > 0 ? (v / maxVal) * plotH : 0;
+    const y = padT + plotH - h;
+    ctx.fillStyle = i < actualN ? '#1e7a52' : '#d99a1f';
+    ctx.beginPath();
+    if(ctx.roundRect){ ctx.roundRect(x, y, barW, h, 3); } else { ctx.rect(x, y, barW, h); }
+    ctx.fill();
+
+    ctx.fillStyle = '#7b8ca3';
+    ctx.font = '9.5px "IBM Plex Mono", monospace';
+    const lbl = labels[i].slice(2).replace('-', '/');
+    ctx.fillText(lbl, x + barW/2, padT + plotH + 8);
+  }
+
+  ctx.strokeStyle = '#dde3ea';
+  ctx.beginPath();
+  ctx.moveTo(padL, padT + plotH);
+  ctx.lineTo(padL + plotW, padT + plotH);
+  ctx.stroke();
+}
+
+let currentMonthTotals = null;
+let currentActualCount = actualCount;
+
+function render(){
+  const filtered = getFiltered();
+  const fv = fvSelect.value;
+
+  document.getElementById('scopeNote').textContent =
+    fv === '__ALL__' ? ('All ' + fvs.length + ' FVs') : fv;
+  document.getElementById('odmCountNote').textContent = filtered.length + ' ODM line' + (filtered.length===1?'':'s') + ' in current filter';
+
+  if(filtered.length === 0){
+    document.getElementById('statGrid').innerHTML = '<div class="empty-state" style="grid-column:1/-1">No data for this filter combination.</div>';
+    document.getElementById('insightsCard').innerHTML = '<div class="empty-state">No data to analyze.</div>';
+    document.getElementById('odmTableBody').innerHTML = '';
+    const canvas = document.getElementById('trendChart');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    return;
+  }
+
+  const monthTotals = months.map(function(m, i){
+    return filtered.reduce(function(sum, d){ return sum + d.vals[i]; }, 0);
+  });
+  const actualVals = monthTotals.slice(0, actualCount);
+  const forecastVals = monthTotals.slice(actualCount);
+  const totalActual = actualVals.reduce(function(a,b){return a+b;}, 0);
+  const totalForecast = forecastVals.reduce(function(a,b){return a+b;}, 0);
+  const avgActual = totalActual / actualCount;
+  const avgForecast = totalForecast / forecastCount;
+  const pctChange = avgActual > 0 ? ((avgForecast - avgActual) / avgActual * 100) : (avgForecast > 0 ? 100 : 0);
+
+  const changeClass = pctChange > 10 ? 'change-up' : (pctChange < -10 ? 'change-down' : '');
+  document.getElementById('statGrid').innerHTML =
+    '<div class="stat-card actual">' +
+      '<div class="stat-label">Total Actual (7mo)</div>' +
+      '<div class="stat-value">' + fmtNum(totalActual) + '</div>' +
+      '<div class="stat-sub">avg ' + fmtNum(avgActual) + '/mo</div>' +
+    '</div>' +
+    '<div class="stat-card forecast">' +
+      '<div class="stat-label">Total Forecast (6mo)</div>' +
+      '<div class="stat-value">' + fmtNum(totalForecast) + '</div>' +
+      '<div class="stat-sub">avg ' + fmtNum(avgForecast) + '/mo</div>' +
+    '</div>' +
+    '<div class="stat-card ' + changeClass + '">' +
+      '<div class="stat-label">Avg Run-Rate Change</div>' +
+      '<div class="stat-value">' + (pctChange >= 0 ? '+' : '') + pctChange.toFixed(0) + '%</div>' +
+      '<div class="stat-sub">forecast vs actual avg/mo</div>' +
+    '</div>' +
+    '<div class="stat-card">' +
+      '<div class="stat-label">ODM Lines</div>' +
+      '<div class="stat-value">' + filtered.length + '</div>' +
+      '<div class="stat-sub">in current filter</div>' +
+    '</div>';
+
+  currentMonthTotals = monthTotals;
+  currentActualCount = actualCount;
+  drawBarChart(document.getElementById('trendChart'), monthTotals, months, actualCount);
+
+  const insights = [];
+
+  if(Math.abs(pctChange) > 15){
+    const dir = pctChange > 0 ? 'up' : 'down';
+    insights.push({
+      type: dir === 'up' ? 'watch' : 'warn',
+      label: dir === 'up' ? 'DEMAND UP' : 'DEMAND DOWN',
+      text: 'Forecast run-rate is <b>' + Math.abs(pctChange).toFixed(0) + '% ' + dir + '</b> vs the actual 7-month average (' + fmtNum(avgActual) + '/mo actual to ' + fmtNum(avgForecast) + '/mo forecast). ' + (dir === 'down' ? 'This is the kind of gap that produces excess if actuals do not follow the forecast down at the same pace.' : 'Worth validating the demand signal behind this ramp before relying on it.')
+    });
+  } else {
+    insights.push({
+      type: 'good',
+      label: 'ALIGNED',
+      text: 'Forecast run-rate (' + fmtNum(avgForecast) + '/mo) is within 15% of the actual 7-month average (' + fmtNum(avgActual) + '/mo) - no major trend break between actuals and forecast.'
+    });
+  }
+
+  const sortedActual = actualVals.slice().sort(function(a,b){return a-b;});
+  const medianActual = sortedActual[Math.floor(sortedActual.length/2)];
+  actualVals.forEach(function(v, i){
+    if(medianActual > 0 && v > medianActual * 2.5 && v > 100){
+      const rest = actualVals.filter(function(_,idx){ return idx !== i; });
+      const restAvg = rest.reduce(function(a,b){return a+b;},0) / rest.length;
+      insights.push({
+        type: 'watch',
+        label: 'OUTLIER MONTH',
+        text: '<b>' + months[i] + '</b> actual (' + fmtNum(v) + ') is a major spike vs. the other actual months (avg ' + fmtNum(restAvg) + '/mo excluding it). If this was a one-time build or event rather than a demand pattern, exclude it before judging whether forecast looks too low - the true recent run-rate may already be close to what forecast shows.'
+      });
+    }
+  });
+
+  const lastActual = actualVals[actualVals.length - 1];
+  const firstForecast = forecastVals[0];
+  if(lastActual > 50){
+    const cliffPct = ((firstForecast - lastActual) / lastActual) * 100;
+    if(Math.abs(cliffPct) > 40){
+      insights.push({
+        type: cliffPct < 0 ? 'warn' : 'watch',
+        label: 'STEP CHANGE',
+        text: 'Sharp ' + (cliffPct < 0 ? 'drop' : 'jump') + ' right at the actual/forecast boundary: <b>' + fmtNum(lastActual) + '</b> in ' + months[actualCount-1] + ' (last actual) vs <b>' + fmtNum(firstForecast) + '</b> in ' + months[actualCount] + ' (first forecast), a ' + (cliffPct >= 0 ? '+' : '') + cliffPct.toFixed(0) + '% step. Worth confirming this reflects a real known event (EOL, ramp, program change) rather than a forecast discontinuity.'
+      });
+    }
+  }
+
+  const newOdms = filtered.filter(function(d){
+    const a = d.vals.slice(0, actualCount).reduce(function(x,y){return x+y;},0);
+    const f = d.vals.slice(actualCount).reduce(function(x,y){return x+y;},0);
+    return a === 0 && f > 0;
+  });
+  if(newOdms.length > 0){
+    insights.push({
+      type: 'watch',
+      label: 'NO HISTORY',
+      text: '<b>' + newOdms.length + ' ODM' + (newOdms.length===1?'':'s') + '</b> (' + newOdms.map(function(d){ const parts = d.odm.split(' - '); return parts.length>1?parts[1]:d.odm; }).join(', ') + ') show forecast volume with <b>zero actual consumption</b> Jan-Jul. Unproven demand - do not rely on these as a home for aged inventory until real orders materialize.'
+    });
+  }
+
+  const vanishingOdms = filtered.filter(function(d){
+    const a = d.vals.slice(0, actualCount).reduce(function(x,y){return x+y;},0);
+    const f = d.vals.slice(actualCount).reduce(function(x,y){return x+y;},0);
+    return a > 100 && f === 0;
+  });
+  if(vanishingOdms.length > 0){
+    insights.push({
+      type: 'warn',
+      label: 'SITE EXIT',
+      text: '<b>' + vanishingOdms.length + ' ODM' + (vanishingOdms.length===1?'':'s') + '</b> (' + vanishingOdms.map(function(d){ const parts = d.odm.split(' - '); return parts.length>1?parts[1]:d.odm; }).join(', ') + ') had real actual consumption but forecast is <b>zero</b> going forward - confirm this is an intentional site exit or EOL, not a stale forecast, since any inventory sitting at these sites has no home under the current plan.'
+    });
+  }
+
+  if(insights.length === 0){
+    insights.push({ type:'info', label:'INFO', text:'No notable bias patterns detected for this filter.' });
+  }
+
+  document.getElementById('insightsCard').innerHTML = insights.map(function(ins){
+    return '<div class="insight-row"><span class="insight-icon ' + ins.type + '">' + ins.label + '</span><div class="insight-text">' + ins.text + '</div></div>';
+  }).join('');
+
+  const rows = filtered.map(function(d){
+    const a = d.vals.slice(0, actualCount).reduce(function(x,y){return x+y;},0);
+    const f = d.vals.slice(actualCount).reduce(function(x,y){return x+y;},0);
+    const avgA = a / actualCount;
+    const avgF = f / forecastCount;
+    const chg = avgA > 0 ? ((avgF - avgA) / avgA * 100) : (avgF > 0 ? 100 : 0);
+    let flag = '';
+    if(a === 0 && f > 0) flag = '<span class="flag-pill flag-new">NEW</span>';
+    if(a > 100 && f === 0) flag = '<span class="flag-pill flag-gone">EXIT</span>';
+    return { odm: d.odm, a: a, f: f, avgA: avgA, avgF: avgF, chg: chg, flag: flag };
+  }).sort(function(x,y){ return y.a - x.a; });
+
+  document.getElementById('odmTableBody').innerHTML = rows.map(function(r){
+    return '<tr><td class="odm-name">' + esc(r.odm) + r.flag + '</td>' +
+      '<td class="num">' + fmtNum(r.a) + '</td>' +
+      '<td class="num">' + fmtNum(r.f) + '</td>' +
+      '<td class="num">' + fmtNum(r.avgA) + '</td>' +
+      '<td class="num">' + fmtNum(r.avgF) + '</td>' +
+      '<td class="num">' + (r.chg >= 0 ? '+' : '') + r.chg.toFixed(0) + '%</td></tr>';
+  }).join('');
+}
+
+fvSelect.addEventListener('change', function(){ updateOdmOptions(); render(); });
+odmSelect.addEventListener('change', render);
+resetBtn.addEventListener('click', function(){ fvSelect.value = '__ALL__'; updateOdmOptions(); render(); });
+window.addEventListener('resize', function(){ if(currentMonthTotals) drawBarChart(document.getElementById('trendChart'), currentMonthTotals, months, currentActualCount); });
+
+updateOdmOptions();
+render();
+</script>
+
+</body>
+</html>
