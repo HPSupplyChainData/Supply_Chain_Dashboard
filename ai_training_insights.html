@@ -17,6 +17,7 @@
 .summary-grid{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:12px}.summary-card{border:1px solid var(--line);border-radius:11px;padding:15px}.summary-card h3{margin:0 0 5px;font-size:16px}.summary-card .big{font-size:23px;font-weight:700}.summary-card p{margin:6px 0 0;color:var(--muted);font-size:12px}
 @media(max-width:900px){.filters{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}.summary-grid{grid-template-columns:1fr}}
 </style>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="container">
@@ -62,7 +63,7 @@
 
 <section class="card"><h2>Course Coverage in Selected Population</h2><div class="table-wrap"><table class="table"><thead><tr><th>Course</th><th>Trained</th><th>Not Trained</th><th>Coverage</th><th>Gap</th></tr></thead><tbody id="courseSummary"></tbody></table></div></section>
 
-<section class="card"><h2>Employee-Level Training Status</h2><div class="legend"><span><span class="dot" style="background:#047857"></span>Completed</span><span><span class="dot" style="background:#b91c1c"></span>Not completed</span></div><div class="table-wrap"><table class="table"><thead><tr id="employeeHeader"><th>Employee</th><th>Supervisor</th><th>Level 04</th><th>Country</th><th>Worker Type</th></tr></thead><tbody id="employeeTable"></tbody></table></div></section>
+<section class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Employee-Level Training Status</h2><button class="btn primary" id="exportEmployeeExcel">Download Excel</button></div><div class="legend"><span><span class="dot" style="background:#047857"></span>Completed</span><span><span class="dot" style="background:#b91c1c"></span>Not completed</span></div><div class="table-wrap"><table class="table"><thead><tr id="employeeHeader"><th>Employee</th><th>Supervisor</th><th>Level 04</th><th>Country</th><th>Worker Type</th></tr></thead><tbody id="employeeTable"></tbody></table></div><p class="small" style="margin:10px 0 0">Excel export respects the current Leader, Supervisor, Course, and Training Status filters.</p></section>
 
 <section class="card"><h2>People Who Have Not Completed Training</h2><p class="small">This section shows only employees with at least one missing course in the selected filter population.</p><div id="missingView"></div></section>
 
@@ -149,6 +150,32 @@ function renderMissing(rows,selectedCourses){
  document.getElementById('missingView').innerHTML=blocks.map(b=>`<div class="summary-card" style="margin:10px 0"><h3>${esc(b.level04)} <span class="small">/ Supervisor: ${esc(b.supervisor)}</span></h3><p><strong>${b.people.length}</strong> employee(s) have one or more missing courses.</p><div style="overflow:auto"><table class="table" style="min-width:700px"><thead><tr><th>Employee</th><th>Courses Not Completed</th></tr></thead><tbody>${b.people.map(p=>`<tr><td><strong>${esc(p.name)}</strong><br><span class="small">${esc(p.email)}</span></td><td class="missing">${p.missing.map(c=>`<span class="chip">${esc(c)}</span>`).join('')}</td></tr>`).join('')}</tbody></table></div></div>`).join('');
 }
 
+function exportEmployeeTableToExcel(){
+ const rows=getFiltered();
+ const selectedCourses=courseSelect.value==='ALL'?courses:[courseSelect.value];
+ const data=rows.map(r=>{
+   const row={
+     'Employee':r.name,
+     'Email':r.email,
+     'Supervisor':r.supervisor,
+     'Level 04':r.level04,
+     'Country':r.country,
+     'Worker Type':r.workerType
+   };
+   selectedCourses.forEach(c=>row[c]=r.courses[c]?'Completed':'Not completed');
+   row['Courses Not Completed']=selectedCourses.filter(c=>!r.courses[c]).join('; ');
+   return row;
+ });
+ if(!rows.length){alert('No employees match the selected filters.');return;}
+ const ws=XLSX.utils.json_to_sheet(data);
+ ws['!cols']=[{wch:26},{wch:34},{wch:22},{wch:22},{wch:14},...selectedCourses.map(()=>({wch:28})),{wch:50}];
+ const wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,ws,'Employee Training Status');
+ const stamp=new Date().toISOString().slice(0,10);
+ XLSX.writeFile(wb,`HP_Training_Employee_Status_${stamp}.xlsx`);
+}
+
+document.getElementById('exportEmployeeExcel').addEventListener('click',exportEmployeeTableToExcel);
 document.getElementById('apply').addEventListener('click',render);
 document.getElementById('clear').addEventListener('click',()=>{leaderSelect.value='ALL';updateSupervisorOptions();supervisorSelect.value='ALL';courseSelect.value='ALL';statusSelect.value='ALL';render();});
 // Live filtering when either dropdown changes
